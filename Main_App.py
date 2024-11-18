@@ -194,7 +194,7 @@ class Amount_Manager:
     def liste_ajout(self):
         liste_ajouts = self.db.get_total_amount()
         for lis in liste_ajouts:
-            st.write(f"voici les ajouts lis[0] et lis[1] et lis[2] ")
+            st.write(f"voici les ajouts {lis[0]} et {lis[1]} et {lis[2]} ")
 
 
 # Lancer l'application Streamlit
