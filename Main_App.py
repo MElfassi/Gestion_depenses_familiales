@@ -166,13 +166,13 @@ class Amount_Manager:
                 with self.db.conn:
                     self.db.conn.execute("DELETE FROM expenses WHERE id = ?", (expense[0],))
                     st.success("Dépense supprimée")
-        st.write("##### Liste des sommes ajoutés")
-        for amoun in amountss:
-            st.write(f"Somme  de {amoun[1]} € ajouté le {amoun[2]}")
-            if st.button(f"Supprimer {amoun[1]} € du {amoun[2]}", key=amoun[0]):
-                with self.db.conn:
-                    self.db.conn.execute("DELETE FROM starting_amounts WHERE id = ?", (amoun[0],))
-                    st.success("Ajout supprimé")
+        # st.write("##### Liste des sommes ajoutés")
+        # for amoun in amountss:
+        #     st.write(f"Somme  de {amoun[1]} € ajouté le {amoun[2]}")
+        #     if st.button(f"Supprimer {amoun[1]} € du {amoun[2]}", key=amoun[0]):
+        #         with self.db.conn:
+        #             self.db.conn.execute("DELETE FROM starting_amounts WHERE id = ?", (amoun[0],))
+        #             st.success("Ajout supprimé")
 
     def show_balance(self):
         """Calcule et affiche le montant restant à dépenser."""
@@ -193,8 +193,13 @@ class Amount_Manager:
 
     def liste_ajout(self):
         liste_ajouts = self.db.get_total_amount()
+        amountss = self.db.get_starting_amounts()
         for lis in liste_ajouts:
             st.write(f"voici les ajouts {lis[0]} et {lis[1]} et {lis[2]} ")
+            if st.button(f"Supprimer {lis[1]} € du {lis[2]}", key=lis[0]):
+                with self.db.conn:
+                    self.db.conn.execute("DELETE FROM starting_amounts WHERE id = ?", (lis[0],))
+                    st.success("Ajout supprimé")
 
 
 # Lancer l'application Streamlit
@@ -206,7 +211,7 @@ def main():
     st.sidebar.header("Options")
     choice = st.sidebar.selectbox("Choisissez une option",
                                   ["Définir le montant à ajouter", "Ajouter une catégorie", "Liste des Categories",
-                                   "Ajouter une dépense", "Voir les dépenses", "Voir le solde","Total Ajout"])
+                                   "Ajouter une dépense", "Voir les dépenses", "Voir les ajouts", "Voir le solde"])
 
     if choice == "Définir le montant à ajouter":
         manager.set_amount()
@@ -219,12 +224,13 @@ def main():
     if choice == "Voir les dépenses":
         # st.write(f" ### Le solde")
         # manager.show_balance()
-        st.write(" ### La liste des ajouts et Dépenses")
+        st.write(" ### La liste des Dépenses")
         manager.show_expenses()
+    if choice == "Voir les ajouts":
+        manager.liste_ajout()
     if choice == "Voir le solde":
         manager.show_balance()
-    if choice == "Total Ajout":
-        manager.liste_ajout()
+
 
 
 if __name__ == "__main__":
