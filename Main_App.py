@@ -224,7 +224,7 @@ def main():
     if choice == "Voir le solde":
         manager.show_balance()
     if choice == "Total Ajout":
-        manager.
+        manager.liste_ajout()
 
 
 if __name__ == "__main__":
