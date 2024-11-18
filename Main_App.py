@@ -1,3 +1,5 @@
+from email.policy import default
+
 import streamlit as st
 import sqlite3
 from datetime import datetime
@@ -76,6 +78,8 @@ class Database:
     def expenses_time(self):
         """Calcul le montant de dépenses par jour"""
         return self.conn.execute("select date, sum(amount) from expenses group by date")
+    def get_total_amount(self):
+        return self.conn.execute("select * from starting_amounts")
 
 # Classe principale pour l'application
 class Amount_Manager:
@@ -88,23 +92,30 @@ class Amount_Manager:
         amount = st.number_input("Montant à ajouter:", min_value=0.0, step=10.0)
         date = st.date_input("Indiquer la date de disponibilité de l'argent")
         if st.button("Définir le nouveau montant"):
-            if date == '':
-                date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            self.db.add_amount(amount, date)
-            st.success(f"Montant de départ de {amount} € ajouté le {date}")
+            if amount >0:
+                if date == '':
+                    date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                self.db.add_amount(amount, date)
+                st.success(f"Montant de départ de {amount} € ajouté le {date}")
+            else:
+                st.write(f"## Le montant doit être supérieur à 0")
+
 
     def add_category(self):
         """Ajoute une nouvelle catégorie de dépenses."""
         category_name = st.text_input("Nom de la catégorie:")
         if st.button("Ajouter la catégorie"):
-            self.db.add_category(category_name)
-            st.success(f"Catégorie '{category_name}' ajoutée")
+            if category_name:
+                self.db.add_category(category_name)
+                st.success(f"Catégorie '{category_name}' est ajoutée")
+            else:
+                st.write(f"## Voulez-vous vraiment ajouter une catégorie sans nom !!!!")
 
     def get_category(self):
         """Liste des category de dépenses et donne la possibilité de supprimer une."""
 
         # Supprime la catégorie en dehors de la boucle
-        selected_categories = st.multiselect(" Sélectionnez les catégories à supprimer",
+        selected_categories = st.multiselect(" *:red[Sélectionnez les catégories à supprimer]*",
                                              [  l[1] for l in self.db.get_categories()])
         if selected_categories:
             st.write(" #### Tu as choisi de supprimer le ou les categories suivantes: ", selected_categories)
@@ -121,21 +132,27 @@ class Amount_Manager:
 
         # Récupère et affiche les catégories après suppression éventuelle
         list_category = self.db.get_categories()
-        st.write(f"### Voici la liste des catégories en mémoire: ")
+        st.write(f"### *Voici votre liste des catégories*: ")
         for l_cat in list_category:
-            st.write(f"La catégorie {l_cat[1]} à l'id: {l_cat[0]}")
+            st.write(f"Catégorie {l_cat[1]} ")
 
     def add_expense(self):
         """Ajoute une dépense en indiquant le montant, la date et la catégorie."""
         amount = st.number_input("Montant de la dépense:", min_value=0.0, step=1.0)
         date = st.date_input("Date de la dépense:")
         categories = self.db.get_categories()
-        category = st.selectbox("Catégorie:", [cat[1] for cat in categories])
+        category = st.selectbox("Catégorie:", [cat[1] for cat in categories],index=None)
 
         if st.button("Ajouter la dépense"):
-            category_id = [cat[0] for cat in categories if cat[1] == category][0]
-            self.db.add_expense(amount, date.strftime("%Y-%m-%d"), category_id)
-            st.success(f"Dépense de {amount} € ajoutée pour la catégorie '{category}' le {date}")
+            if amount >0:
+                if category:
+                    category_id = [cat[0] for cat in categories if cat[1] == category][0]
+                    self.db.add_expense(amount, date.strftime("%Y-%m-%d"), category_id)
+                    st.success(f"Dépense de {amount} € ajoutée pour la catégorie '{category}' le {date}")
+                else:
+                    st.write(f"### :red[Veuillez sélectionner une categorie de dépense !!]")
+            else:
+                st.write(f"## :red[Veuillez mettre un montant supérieur à zéro !!]")
 
     def show_expenses(self):
         """Affiche toutes les dépenses sous forme de tableau avec la possibilité de les modifier ou de les supprimer."""
@@ -162,9 +179,22 @@ class Amount_Manager:
         starting_amounts = self.db.get_starting_amounts()
         if starting_amounts:
             total_starting = sum(amount[1] for amount in starting_amounts)
-            total_expenses = self.db.get_total_expenses()
-            remaining_balance = total_starting - total_expenses
-            st.write(f"Reste à dépenser: {remaining_balance} €")
+            if total_starting:
+                total_expenses = self.db.get_total_expenses()
+                remaining_balance = total_starting - total_expenses
+                if remaining_balance > 500:
+                    st.write(f" ###  Reste à dépenser: :green[*{remaining_balance}*] €")
+                elif 500 > remaining_balance > 100:
+                    st.write(f" ###  Reste à dépenser: :orange[*{remaining_balance}*] €")
+                else:
+                    st.write(f" ###  Reste à dépenser: :red[*{remaining_balance}*] €")
+            else:
+                st.write(f"## Avez vous insérez des *montants* ou des *dépenses* ? :money_with_wings:")
+
+    def liste_ajout(self):
+        liste_ajouts = self.db.get_total_amount()
+        for lis in liste_ajouts:
+            st.write(f"voici les ajouts lis[0] et lis[1] et lis[2] ")
 
 
 # Lancer l'application Streamlit
@@ -176,7 +206,7 @@ def main():
     st.sidebar.header("Options")
     choice = st.sidebar.selectbox("Choisissez une option",
                                   ["Définir le montant à ajouter", "Ajouter une catégorie", "Liste des Categories",
-                                   "Ajouter une dépense", "Voir les dépenses", "Voir le solde"])
+                                   "Ajouter une dépense", "Voir les dépenses", "Voir le solde","Total Ajout"])
 
     if choice == "Définir le montant à ajouter":
         manager.set_amount()
@@ -187,12 +217,14 @@ def main():
     if choice == "Ajouter une dépense":
         manager.add_expense()
     if choice == "Voir les dépenses":
-        st.write(f" ### Le solde")
-        manager.show_balance()
+        # st.write(f" ### Le solde")
+        # manager.show_balance()
         st.write(" ### La liste des ajouts et Dépenses")
         manager.show_expenses()
     if choice == "Voir le solde":
         manager.show_balance()
+    if choice == "Total Ajout":
+        manager.
 
 
 if __name__ == "__main__":
